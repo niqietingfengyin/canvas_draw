@@ -1,0 +1,8 @@
+画笔分析：画笔原理是:每次移动触发 onmousemove(),其中moveTo(startX, startY), lineTo(currentX, currentY);然后更新startX=currentX, startY=currentY;
+一笔结束 触发onmouseup(),提交一次msgid+1，msg;
+onload触发的函数fetchMsg()是每隔1s提交ajax请求，发一个msgid，该ajax只执行action.php中的else部分，也即 如果该值小于存储的
+SESSION['id'],说明需要更新，于是返回新的msgid，msg; 反复扫描保证每一笔都更新到对方的页面内；
+
+问题：action.php中的原理是在 页面刷新之后，在onload触发之前先触发onmouseup(),提交id,msg参数，给$_SESSION[‘id’]一个处置，这样不会变成NaN; 如果页面刷新之后，不及时点击页面，可能导致先触发onload绑定的fetchMsg（）函数，这时因为没有$_POST['msg'],导致执行else部分，而这时$_SESSION[‘id’]还没有值，会变成NaN, 后来即使点击画布触发onmouseup，执行appendMsg，提交msgid+1和msg, msgid已经是NaN,所以提交的是一个NaN; 那么轮到fetchMsg扫描时，不会执行else中的语句；因此对方不能看到每一笔的内容，只在刷新页面时会收到上一整页面的内容。
+
+解决： 在else中判断是否$_SESSION['id']存在，如果存在，正常执行反复扫描，如果不存在则把$_POST['id']也就是1赋给$_SESSION['id']，作为初始值，直到画笔触发onmouseup才会更新$_SESSION['id'];
